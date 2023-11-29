@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <base target="_top">
+  <link rel="stylesheet" href="https://ssl.gstatic.com/docs/script/css/add-ons1.css">
+  <style>
+    body {
+      height: 100%;
+    }
+  </style>
+</head>
+
+<body class="sidebar">
+  <p>Promisified <code>google.script.run</code> functions are available in the <code>googleScriptAsync</code> object!</p>
+  <p>Open DevTools and unpause the debugger to access the functions.</p>
+
+  <script type="module">
+    globalThis.googleScriptAsync = {};
+
+    const excludedFunctions = [
+      // Default google.script.run functions
+      'withFailureHandler',
+      'withSuccessHandler',
+      'withUserObject',
+      'withLogger',
+      // These are for setting up the UI
+      'onOpen',
+      'showSidebar'
+    ]
+    for (const name of Object.keys(google.script.run)) {
+      if (excludedFunctions.includes(name)) {
+        continue;
+      }
+      function asyncFn() {
+        return new Promise((resolve, reject) => {
+          google.script.run
+            .withSuccessHandler(resolve)
+            .withFailureHandler(reject)
+          [name]();
+        });
+      }
+      globalThis.googleScriptAsync[name] = asyncFn;
+    }
+
+    // Monitor for when user opens DevTools then trigger debugger to focus this iframe when DevTools is opened.
+    // Otherwise, the default execution context will be the top window, where googleScriptAsync is not accessible.
+    const id = setInterval(() => {
+      const t0 = Date.now();
+      debugger;
+      const t1 = Date.now();
+      if (t0 !== t1) {
+        clearInterval(id);
+        console.clear();
+        console.log(
+          '%cAccess promisified functions using %cgoogleScriptAsync',
+          'color: blue; font-size: 1.5rem;',
+          'color: blue; font-size: 2rem; font-weight: bold;'
+        );
+        console.table({
+          'google.script.run.getString': { 'Promisified': 'googleScriptAsync.getString', 'Example': 'await googleScriptAsync.getString().then(console.log)' },
+          'google.script.run.getObject': { 'Promisified': 'googleScriptAsync.getObject', 'Example': 'await googleScriptAsync.getObject().then(console.table)' },
+          'google.script.run.mirror': { 'Promisified': 'googleScriptAsync.mirror', 'Example': 'await googleScriptAsync.getString().then(googleScriptAsync.mirror).then(console.log)' },
+          'google.script.run.throwError': { 'Promisified': 'googleScriptAsync.throwError', 'Example': 'await googleScriptAsync.throwError().catch(e => console.error("Caught error: ", e))' }
+        });
+      }
+    }, 1000);
+  </script>
+
+  <p class="bottom gray">https://github.com/ardislu/promisify-google-script-run</p>
+</body>
+
+</html>
