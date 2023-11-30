@@ -32,12 +32,12 @@
       if (excludedFunctions.includes(name)) {
         continue;
       }
-      function asyncFn() {
+      function asyncFn(...args) {
         return new Promise((resolve, reject) => {
           google.script.run
             .withSuccessHandler(resolve)
             .withFailureHandler(reject)
-          [name]();
+          [name](...args);
         });
       }
       globalThis.googleScriptAsync[name] = asyncFn;
